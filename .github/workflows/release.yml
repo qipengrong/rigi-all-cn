@@ -1,0 +1,164 @@
+name: Build & Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag name (e.g. v1.6.0-cn)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Determine version
+        id: ver
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            TAG="${{ inputs.tag }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "Building release for tag: $TAG"
+
+      - name: Verify required files
+        run: |
+          set -e
+          for f in __init__.py main.py panel.py rongcool_i18n.py \
+                   blender_manifest.toml LICENSE; do
+            if [ ! -f "$f" ]; then
+              echo "::error::缺少必需文件: $f"
+              exit 1
+            fi
+          done
+          echo "所有必需文件存在"
+
+      - name: Syntax check
+        run: |
+          set -e
+          python3 -m py_compile __init__.py main.py panel.py \
+            operators.py operators_ambidextrous.py \
+            operators_cleanup.py operators_miscellaneous.py \
+            rongcool_i18n.py
+          echo "语法检查通过"
+
+      - name: Build Blender extension zip
+        id: pack
+        run: |
+          set -e
+          VERSION="${{ steps.ver.outputs.tag }}"
+          PKG="rigi_all"
+          ZIP_NAME="rigi_all_${VERSION#v}.zip"
+
+          rm -rf build_out
+          mkdir -p "build_out/$PKG"
+
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='build_out' \
+            --exclude='*.zip' \
+            --exclude='__pycache__' \
+            ./ "build_out/$PKG/"
+
+          ( cd build_out && zip -r -9 "$ZIP_NAME" "$PKG" )
+          mv "build_out/$ZIP_NAME" .
+
+          SHA=$(sha256sum "$ZIP_NAME" | cut -d' ' -f1)
+          SIZE=$(stat -c%s "$ZIP_NAME")
+
+          echo "zip_name=$ZIP_NAME" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
+          echo "size=$SIZE" >> "$GITHUB_OUTPUT"
+          echo "构建完成: $ZIP_NAME ($SIZE 字节)"
+          echo "SHA256: $SHA"
+
+      - name: Show zip contents
+        run: unzip -l "${{ steps.pack.outputs.zip_name }}"
+
+      - name: Create or update Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.ver.outputs.tag }}
+          ZIP_NAME: ${{ steps.pack.outputs.zip_name }}
+          SHA256: ${{ steps.pack.outputs.sha256 }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -e
+
+          if gh release view "$TAG" --repo "$REPO" >/dev/null 2>&1; then
+            echo "Release $TAG 已存在，仅追加附件"
+            gh release upload "$TAG" "$ZIP_NAME" --repo "$REPO" --clobber
+          else
+            echo "创建新 Release $TAG"
+
+            # 用 python 生成说明文件，避免 heredoc 缩进问题
+            python3 - "$TAG" "$ZIP_NAME" "$SHA256" "$REPO" > release_notes.md <<'PYEOF'
+          import sys
+          tag, zip_name, sha256, repo = sys.argv[1:5]
+
+          text = f"""## Rigi-All 简体中文汉化版 {tag}
+
+          基于官方 Rigi-All 1.6.0 + 荣枯CG 汉化，修正 584 条机翻错误。
+
+          ### 一键安装
+
+          下载下方 **`{zip_name}`**，**不用解压、不用改名**，直接装：
+
+          1. Blender → `编辑` → `偏好设置`
+          2. 左侧选 `获取扩展`（Get Extensions）
+          3. 右上角 **下拉菜单** → **从磁盘安装**（Install from Disk）
+          4. 选择刚下载的 zip
+          5. 在列表找到 **Rigi-All-里吉-奥尔-荣枯汉化**，勾选启用
+
+          > Blender 4.1 及以下：`编辑 → 偏好设置 → 插件 → 安装`，选择 zip，
+          > 搜索 Rigi-All 勾选。
+
+          ### 前提条件
+
+          - Blender **4.2+**（实测 5.3 可用）
+          - **必须启用 Rigify**
+          - 界面语言设为**简体中文**
+
+          ### 来源
+
+          - **原插件**：hisanimation/rigi-all（GPL-3.0）
+          - **汉化基底**：荣枯CG（https://www.rong.cool）
+          - **修正**：DSH
+
+          ### 本包校验
+
+          - 文件：`{zip_name}`
+          - SHA256：`{sha256}`
+
+          详见 [README](https://github.com/{repo}#readme)。
+          """
+          print(text)
+          PYEOF
+
+            gh release create "$TAG" "$ZIP_NAME" \
+              --repo "$REPO" \
+              --title "Rigi-All 简体中文版 $tag" \
+              --notes-file release_notes.md \
+              --latest
+          fi
+
+          echo "发布完成: https://github.com/$REPO/releases/tag/$TAG"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: rigi-all-cn-${{ steps.ver.outputs.tag }}
+          path: ${{ steps.pack.outputs.zip_name }}
+          retention-days: 30
