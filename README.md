@@ -32,31 +32,64 @@ Blender 绑定插件 [Rigi-All](https://github.com/hisprofile/rigi-all) 的简�
 
 完整修正列表见 [`rongcool_i18n.py`](rongcool_i18n.py)。
 
+---
+
 ## 安装
 
-### 方式一：从 Blender 扩展安装（推荐）
+### 推荐方式：直接安装 Release 包
 
-1. 下载本仓库为 ZIP（Code → Download ZIP）
-2. 解压后把 `rigi-all-cn` 文件夹重命名为 `rigi_all`
-3. 压缩成 `rigi_all.zip`（注意：ZIP 内需直接是 `rigi_all/` 目录）
-4. Blender → `编辑 → 偏好设置 → 获取扩展 → 右上角下拉 → 从磁盘安装`
-5. 选择 ZIP 安装并启用
+**一键下载地址**：
 
-### 方式二：手动复制
+👉 **[rigi_all_1.6.0_cn.zip](https://github.com/qipengrong/rigi-all-cn/releases/download/v1.6.0-cn/rigi_all_1.6.0_cn.zip)**
 
-把本仓库所有文件复制到：
+下载后**不需要解压、不需要改名**，直接装：
+
+**Blender 4.2 及以上：**
+
+1. 打开 Blender → `编辑` → `偏好设置`
+2. 左侧选 `获取扩展`（Get Extensions）
+3. 点击右上角 **⌄ 下拉菜单** → **从磁盘安装**（Install from
+   Disk）
+4. 选择刚下载的 `rigi_all_1.6.0_cn.zip`
+5. 在列表中找到 **Rigi-All-里吉-奥尔-荣枯汉化**，勾选启用
+
+**Blender 4.1 及以下**（老式插件管理）：
+
+1. `编辑` → `偏好设置` → `插件`
+2. 点 `安装` → 选择 zip
+3. 搜索 `Rigi-All` 并勾选
+
+### 方式二：从源码安装
+
+如果不用 Release 包，也可以下载源码后手动处理：
+
+1. 点页面顶部绿色 `Code` → `Download ZIP`
+2. 解压后得到 `rigi-all-cn-main` 文件夹
+3. **把它重命名为 `rigi_all`**（下划线，必须）
+4. 压缩成 `rigi_all.zip`（注意：zip 内直接就是 `rigi_all/` 目录，
+   不要多套一层）
+5. 按上面的「从磁盘安装」步骤安装
+
+### 方式三：手动复制文件
+
+直接复制到扩展目录：
 
 ```
-%APPDATA%\Blender Foundation\Blender\<版本>\extensions\user_default\rigi_all\
+%APPDATA%\Blender Foundation\Blender\<版本号>\extensions\user_default\rigi_all\
 ```
 
 然后在 `偏好设置 → 扩展` 中启用。
+
+---
 
 ## 前提条件
 
 - **必须启用 Rigify**（Rigi-All 依赖 Rigify 的功能）
 - Blender 版本：**4.2+**（实测 5.3 可用）
-- 界面语言需设为**简体中文**（`编辑 → 偏好设置 → 界面 → 翻译 → 语言`）
+- 界面语言需设为**简体中文**：
+  `编辑 → 偏好设置 → 界面 → 翻译 → 语言 → 简体中文`
+
+---
 
 ## 使用
 
@@ -64,11 +97,13 @@ Blender 绑定插件 [Rigi-All](https://github.com/hisprofile/rigi-all) 的简�
 
 ### 快速上手
 
-1. 新建或选中一个骨架（`Shift+A → 骨架`）
-2. 物体模式下点 **初始化骨架**
-3. 姿态模式下选中骨骼，依次点 **生成脊柱 / 生成双腿 / 生成双臂**
-4. 最后点 **生成附加骨（最后一步！）**
-5. 切回物体模式 → Rigify 面板 → **生成骨架**
+```
+1. 新建或选中一个骨架（Shift+A → 骨架）
+2. 物体模式下点「初始化骨架」
+3. 姿态模式下选中骨骼，依次点「生成脊柱 / 生成双腿 / 生成双臂」
+4. 最后点「生成附加骨（最后一步！）」
+5. 切回物体模式 → Rigify 面板 → 「生成骨架」
+```
 
 ### 按钮选中要求
 
@@ -79,17 +114,30 @@ Blender 绑定插件 [Rigi-All](https://github.com/hisprofile/rigi-all) 的简�
 | 生成腿部 | 4 根骨骼（胯/大腿/小腿/脚） |
 | 生成手指 | 一整条手指骨链 |
 
+### 界面结构
+
+面板分三个视图（顶部下拉切换）：
+
+- **绑定**（Rigging）：建骨主流程
+- **清理**（Clean up）：骨骼/顶点组清理、合并骨架
+- **杂项**（Misc.）：骨骼渲染化、可见性切换器
+
+---
+
 ## 已知问题
 
 - `__init__.py` 中的 `bl_info` 已被汉化包改为
   `Rigi-All-里吉-奥尔-荣枯汉化`，所以插件列表中显示的是中文名
 - 翻译使用 Blender 官方 `bpy.app.translations` 机制，
   **不修改插件任何核心逻辑**
+- 若界面显示英文，请确认：① 已启用本插件 ② Blender 语言已设为简体
+  中文
 
-## 更新说明
+## 版本说明
 
 - 本仓库基于 **Rigi-All 1.6.0**
 - 官方发布新版本时，本仓库不会自动同步；需要手动合并汉化
+- 当前版本：`v1.6.0-cn`
 
 ## 协议
 
